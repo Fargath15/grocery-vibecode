@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id                Int         @id @default(autoincrement())
+  name              String
+  sku               String      @unique
+  category          String
+  subcategory       String
+  description       String?
+  imageUrl          String?
+  price             Float
+  quantity          Int         @default(0)
+  lowStockThreshold Int         @default(10)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  orderItems        OrderItem[]
+}
+
+model Order {
+  id              Int                @id @default(autoincrement())
+  customerName    String
+  customerEmail   String
+  customerMobile  String
+  billingAddress  String
+  shippingAddress String
+  paymentMethod   String
+  paymentStatus   String             @default("PENDING")
+  trackingStatus  String             @default("PLACED")
+  total           Float
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  orderItems      OrderItem[]
+  trackingEvents  OrderTrackingEvent[]
+  notifications   Notification[]
+
+  @@index([customerEmail])
+}
+
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  orderId   Int
+  itemId    Int
+  quantity  Int
+  unitPrice Float
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item      Item  @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([itemId])
+}
+
+model OrderTrackingEvent {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  status    String
+  note      String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model Notification {
+  id            Int      @id @default(autoincrement())
+  orderId       Int?
+  customerEmail String?
+  type          String
+  message       String
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  order         Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([customerEmail])
+}
